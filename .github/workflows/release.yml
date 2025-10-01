@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  release:
+    types: [created, published]
+
+jobs:
+  build-and-upload:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x86, x64]
+        include:
+          - arch: x86
+            msystem: MINGW32
+            flag: -m32
+          - arch: x64
+            msystem: MINGW64
+            flag: -m64
+    
+    steps:
+    - name: 获取代码
+      uses: actions/checkout@v4
+
+    - name: 设置编译器
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: true
+        install: >-
+          mingw-w64-i686-gcc
+          mingw-w64-x86_64-gcc
+    
+    - name: 编译 ${{ matrix.arch }}
+      shell: msys2 {0}
+      run: |
+        g++ editorcode.cpp -std=c++14 -O2 -s ${{ matrix.flag }} -o CMDpp-${{ matrix.arch }}.exe
+    
+    - name: 上传Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: CMDpp-${{ matrix.arch }}.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
